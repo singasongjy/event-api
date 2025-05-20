@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo
+    container_name: mongo
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo_data:/data/db
+
+  event:
+    build:
+      context: .
+      dockerfile: apps/event/Dockerfile
+    container_name: event
+    ports:
+      - '3002:3002'
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/event-db
+    depends_on:
+      - mongo
+
+  auth:
+    build:
+      context: .
+      dockerfile: apps/auth/Dockerfile
+    container_name: auth
+    ports:
+      - '3001:3001'
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/auth-db
+    depends_on:
+      - mongo
+
+  gateway:
+    build:
+      context: .
+      dockerfile: apps/gateway/Dockerfile
+    container_name: gateway
+    ports:
+      - '3000:3000'
+    environment:
+      - AUTH_SERVICE_URL=http://auth:3001
+      - EVENT_SERVICE_URL=http://event:3002
+      - JWT_SECRET=your_jwt_secret
+    depends_on:
+      - auth
+      - event
+
+volumes:
+  mongo_data:
